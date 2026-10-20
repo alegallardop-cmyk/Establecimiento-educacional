@@ -1,0 +1,20 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Ícono: cuaderno / bitácora -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Tapa del cuaderno -->
+    <path
+        android:fillColor="#FFFFFF"
+        android:pathData="M38,30h32a4,4 0,0 1,4 4v40a4,4 0,0 1,-4 4h-32a4,4 0,0 1,-4 -4v-40a4,4 0,0 1,4 -4z" />
+    <!-- Lomo -->
+    <path
+        android:fillColor="#F2B705"
+        android:pathData="M34,34a4,4 0,0 1,4 -4h4v48h-4a4,4 0,0 1,-4 -4z" />
+    <!-- Líneas -->
+    <path
+        android:fillColor="#1F5FAD"
+        android:pathData="M48,42h18v3h-18zM48,50h18v3h-18zM48,58h12v3h-12z" />
+</vector>

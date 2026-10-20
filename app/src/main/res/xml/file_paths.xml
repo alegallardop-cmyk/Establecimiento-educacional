@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- files-path (y no cache-path): las fotos de evidencia deben quedar guardadas,
+         y Android puede borrar la caché cuando necesita espacio -->
+    <files-path
+        name="fotos"
+        path="fotos/" />
+</paths>
