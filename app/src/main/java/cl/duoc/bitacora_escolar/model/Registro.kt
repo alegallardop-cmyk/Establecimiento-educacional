@@ -1,26 +1,11 @@
 package cl.duoc.bitacora_escolar.model
 
-import androidx.room3.Entity
-import androidx.room3.ForeignKey
-import androidx.room3.Index
-import androidx.room3.PrimaryKey
-
 // Registro (aporte) que hace un estudiante después de una clase.
 // También guarda la retroalimentación del docente.
-// CLAVES FORÁNEAS: bitacoraId → bitacoras, estudianteId y docenteRevisorId → usuarios.
-// El nombre del estudiante NO se guarda aquí: se obtiene con un JOIN (3FN).
-@Entity(
-    tableName = "registros",
-    foreignKeys = [
-        ForeignKey(entity = Bitacora::class, parentColumns = ["id"], childColumns = ["bitacoraId"], onDelete = ForeignKey.CASCADE),
-        ForeignKey(entity = Usuario::class, parentColumns = ["id"], childColumns = ["estudianteId"]),
-        ForeignKey(entity = Usuario::class, parentColumns = ["id"], childColumns = ["docenteRevisorId"])
-    ],
-    indices = [Index("bitacoraId"), Index("estudianteId"), Index("docenteRevisorId")]
-)
+// Se guarda en el MICROSERVICIO (JSON). Las evidencias vienen dentro del mismo registro.
+// El nombre del estudiante NO viene del servidor: se busca en Room con estudianteId.
 data class Registro(
-    @PrimaryKey(autoGenerate = true)
-    val id: Int = 0,
+    val id: Int = 0,               // 0 = registro nuevo
     val bitacoraId: Int,
     val estudianteId: Int,
     val fechaClase: String,        // formato dd/mm/aaaa
@@ -36,5 +21,8 @@ data class Registro(
     // Retroalimentación del docente
     val comentarioDocente: String = "",
     val fechaRetroalimentacion: String = "",
-    val docenteRevisorId: Int? = null   // null = todavía nadie lo revisa
+    val docenteRevisorId: Int? = null,  // null = todavía nadie lo revisa
+
+    // Fotos y enlaces (máximo 5)
+    val evidencias: List<Evidencia> = emptyList()
 )

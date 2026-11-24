@@ -39,3 +39,11 @@ object EstadoRecordatorio {
     const val PENDIENTE = "PENDIENTE"
     const val COMPLETADO = "COMPLETADO"
 }
+
+// Filtro de "Mis aportes" del estudiante ("" = todos)
+object FiltroSeguimiento {
+    const val TODOS = ""
+    const val BORRADORES = "BORRADORES"
+    const val PENDIENTES = "PENDIENTES"
+    const val REVISADOS = "REVISADOS"
+}
