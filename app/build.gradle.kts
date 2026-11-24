@@ -1,8 +1,17 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
     alias(libs.plugins.kover)
+}
+
+// Datos de la firma: keystore.properties en la raíz del proyecto (copiar keystore.properties.ejemplo)
+val keystoreArchivo = rootProject.file("keystore.properties")
+val keystoreDatos = Properties()
+if (keystoreArchivo.exists()) {
+    keystoreArchivo.inputStream().use { keystoreDatos.load(it) }
 }
 
 android {
@@ -23,10 +32,27 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Firma del APK (guía "Firma y versionado de una APK"):
+    // las contraseñas NO van aquí, se leen de keystore.properties (que está fuera de Git).
+    signingConfigs {
+        create("release") {
+            if (keystoreArchivo.exists()) {
+                storeFile = rootProject.file(keystoreDatos.getProperty("storeFile"))
+                storePassword = keystoreDatos.getProperty("storePassword")
+                keyAlias = keystoreDatos.getProperty("keyAlias")
+                keyPassword = keystoreDatos.getProperty("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
             optimization {
                 enable = false
+            }
+            // Sin keystore.properties el APK release se genera sin firmar
+            if (keystoreArchivo.exists()) {
+                signingConfig = signingConfigs.getByName("release")
             }
         }
     }
@@ -90,4 +116,22 @@ kover {
             }
         }
     }
+}
+
+// APK con nombre versionado: BitacoraEscolar-v1.0-build1.apk
+// Ejecutar: .\gradlew :app:exportarApkRelease  → queda en app/build/apk-exportadas/
+val app = "BitacoraEscolar"
+val version = android.defaultConfig.versionName ?: "1.0"
+val build = android.defaultConfig.versionCode ?: 1
+
+tasks.register<Copy>("exportarApkRelease") {
+    // Esta tarea solo copia y renombra el APK: se marca para que Gradle no la guarde en su caché de configuración
+    notCompatibleWithConfigurationCache("Copia y renombra el APK release")
+    val nombreApk = "$app-v$version-build$build.apk"
+    dependsOn("assembleRelease")
+    from(layout.buildDirectory.dir("outputs/apk/release")) {
+        include("app-release.apk")
+        rename("app-release.apk", nombreApk)
+    }
+    into(layout.buildDirectory.dir("apk-exportadas"))
 }

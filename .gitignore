@@ -14,3 +14,5 @@
 .cxx
 local.properties
 .idea/
+# Contraseñas de la firma (ver keystore.properties.ejemplo)
+keystore.properties
