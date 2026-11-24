@@ -1,10 +1,8 @@
 package cl.duoc.bitacora_escolar.ui.login
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cl.duoc.bitacora_escolar.data.AppDatabase
-import cl.duoc.bitacora_escolar.data.DatosDePrueba
+import cl.duoc.bitacora_escolar.data.Dependencias
 import cl.duoc.bitacora_escolar.data.Sesion
 import cl.duoc.bitacora_escolar.data.UsuarioRepository
 import cl.duoc.bitacora_escolar.model.Perfil
@@ -16,12 +14,11 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
+// El login sigue siendo LOCAL (Room): usuarios ficticios en el teléfono.
+// El repositorio llega por parámetro (con valor por defecto) para poder probarlo con datos falsos.
 class LoginViewModel(
-    application: Application
-) : AndroidViewModel(application) {
-
-    private val database = AppDatabase.getInstance(application)
-    private val repository = UsuarioRepository(database.usuarioDao())
+    private val repository: UsuarioRepository = Dependencias.usuarioRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
@@ -61,7 +58,7 @@ class LoginViewModel(
             // try / catch: si la base de datos falla, se muestra un mensaje en vez de cerrarse la app
             try {
                 // La primera vez se cargan los datos ficticios
-                DatosDePrueba.cargarSiEstaVacia(database)
+                repository.prepararDatos()
 
                 val usuario = repository.buscarPorCorreo(estado.correo)
                 if (usuario == null || usuario.password != estado.password) {

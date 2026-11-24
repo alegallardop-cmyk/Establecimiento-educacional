@@ -31,6 +31,8 @@ data class RegistroUiState(
     // Estado de la pantalla
     val soloLectura: Boolean = false,        // ya enviado o bitácora cerrada
     val sinAcceso: Boolean = false,
+    val cargando: Boolean = true,           // true mientras se piden los datos al servidor
+    val confirmarEliminar: Boolean = false,  // true = se muestra "¿Eliminar borrador?" con Sí / No
     val mensaje: String = "",
     val mensajeEsError: Boolean = false
 )

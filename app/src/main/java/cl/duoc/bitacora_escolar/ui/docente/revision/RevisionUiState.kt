@@ -16,6 +16,7 @@ data class RevisionUiState(
 
     // Estado de la pantalla
     val sinAcceso: Boolean = false,
+    val cargando: Boolean = true,           // true mientras se piden los datos al servidor
     val mensaje: String = "",
     val mensajeEsError: Boolean = false
 )

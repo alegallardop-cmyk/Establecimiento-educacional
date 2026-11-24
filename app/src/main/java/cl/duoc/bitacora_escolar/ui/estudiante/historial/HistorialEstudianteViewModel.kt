@@ -1,60 +1,53 @@
 package cl.duoc.bitacora_escolar.ui.estudiante.historial
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cl.duoc.bitacora_escolar.data.AppDatabase
 import cl.duoc.bitacora_escolar.data.BitacoraRepository
+import cl.duoc.bitacora_escolar.data.Dependencias
 import cl.duoc.bitacora_escolar.data.RegistroRepository
 import cl.duoc.bitacora_escolar.data.Sesion
 import cl.duoc.bitacora_escolar.model.BitacoraConNombres
 import cl.duoc.bitacora_escolar.model.EstadoEnvio
 import cl.duoc.bitacora_escolar.model.EstadoRevision
+import cl.duoc.bitacora_escolar.model.FiltroSeguimiento
 import cl.duoc.bitacora_escolar.model.Registro
-import kotlinx.coroutines.flow.*
-
-// Valores del filtro de seguimiento
-object FiltroSeguimiento {
-    const val TODOS = ""
-    const val BORRADORES = "BORRADORES"
-    const val PENDIENTES = "PENDIENTES"
-    const val REVISADOS = "REVISADOS"
-}
+import cl.duoc.bitacora_escolar.util.ERROR_CONEXION
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
 
 // Historial del estudiante: TODOS sus aportes y en qué estado van (seguimiento)
 class HistorialEstudianteViewModel(
-    application: Application
-) : AndroidViewModel(application) {
+    private val bitacoraRepository: BitacoraRepository = Dependencias.bitacoraRepository,
+    private val registroRepository: RegistroRepository = Dependencias.registroRepository
+) : ViewModel() {
 
-    private val database = AppDatabase.getInstance(application)
-    private val bitacoraRepository = BitacoraRepository(database.bitacoraDao())
-    private val registroRepository = RegistroRepository(database.registroDao(), database.evidenciaDao())
+    private val _uiState = MutableStateFlow(HistorialEstudianteUiState())
+    val uiState: StateFlow<HistorialEstudianteUiState> = _uiState.asStateFlow()
 
-    // Solo SUS registros
-    val misRegistros: StateFlow<List<Registro>> =
-        registroRepository
-            .observarDeEstudiante(Sesion.idUsuario())
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
-
-    // Bitácoras de su curso (para mostrar a qué bitácora pertenece cada aporte)
-    val bitacoras: StateFlow<List<BitacoraConNombres>> =
-        bitacoraRepository
-            .observarVisiblesDeCurso(Sesion.usuario?.cursoId ?: 0)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
-
-    private val _filtro = MutableStateFlow(FiltroSeguimiento.TODOS)
-    val filtro: StateFlow<String> = _filtro.asStateFlow()
+    fun cargar() {
+        viewModelScope.launch {
+            _uiState.update { it.copy(cargando = true) }
+            try {
+                val misRegistros = registroRepository.obtenerDeEstudiante(Sesion.idUsuario())
+                val bitacoras = bitacoraRepository.obtenerVisiblesDeCurso(Sesion.usuario?.cursoId ?: 0)
+                _uiState.update {
+                    it.copy(misRegistros = misRegistros, bitacoras = bitacoras, cargando = false, error = "")
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { it.copy(cargando = false, error = ERROR_CONEXION) }
+            }
+        }
+    }
 
     fun cambiarFiltro(valor: String) {
-        _filtro.value = valor
+        _uiState.update { it.copy(filtro = valor) }
     }
 
     fun filtrados(registros: List<Registro>, filtro: String): List<Registro> {

@@ -32,6 +32,7 @@ data class FormBitacoraUiState(
 
     // Estado de la pantalla
     val sinAcceso: Boolean = false,
+    val cargando: Boolean = true,           // true mientras se piden los datos al servidor
     val guardada: Boolean = false,      // true = se guardó bien (se muestra la confirmación)
     val mensaje: String = "",
     val mensajeEsError: Boolean = false

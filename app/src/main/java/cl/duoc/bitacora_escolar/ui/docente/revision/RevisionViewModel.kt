@@ -1,16 +1,16 @@
 package cl.duoc.bitacora_escolar.ui.docente.revision
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cl.duoc.bitacora_escolar.data.AppDatabase
 import cl.duoc.bitacora_escolar.data.BitacoraRepository
+import cl.duoc.bitacora_escolar.data.Dependencias
 import cl.duoc.bitacora_escolar.data.RegistroRepository
 import cl.duoc.bitacora_escolar.data.Sesion
 import cl.duoc.bitacora_escolar.model.EstadoEnvio
 import cl.duoc.bitacora_escolar.model.EstadoRevision
-import cl.duoc.bitacora_escolar.util.fechaDeHoy
+import cl.duoc.bitacora_escolar.util.ERROR_CONEXION
 import cl.duoc.bitacora_escolar.util.validarComentario
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -18,37 +18,44 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class RevisionViewModel(
-    application: Application
-) : AndroidViewModel(application) {
-
-    private val database = AppDatabase.getInstance(application)
-    private val registroRepository = RegistroRepository(database.registroDao(), database.evidenciaDao())
-    private val bitacoraRepository = BitacoraRepository(database.bitacoraDao())
+    private val registroRepository: RegistroRepository = Dependencias.registroRepository,
+    private val bitacoraRepository: BitacoraRepository = Dependencias.bitacoraRepository
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RevisionUiState())
     val uiState: StateFlow<RevisionUiState> = _uiState.asStateFlow()
 
+    // Se carga una sola vez (init) para no borrar el comentario que se está escribiendo
     init {
         viewModelScope.launch {
-            val aporte = registroRepository.obtenerPorId(Sesion.registroSeleccionado)
-            val registro = aporte?.registro
-            val bitacora = if (registro != null) bitacoraRepository.obtenerPorId(registro.bitacoraId) else null
+            try {
+                val aporte = registroRepository.obtenerPorId(Sesion.registroSeleccionado)
+                val registro = aporte.registro
+                val bitacora = bitacoraRepository.obtenerPorId(registro.bitacoraId)
 
-            // Solo el docente responsable revisa, y solo registros ENVIADOS
-            if (registro == null || bitacora == null ||
-                bitacora.docenteId != Sesion.idUsuario() ||
-                registro.estadoEnvio != EstadoEnvio.ENVIADO
-            ) {
-                _uiState.update { it.copy(sinAcceso = true) }
-            } else {
-                _uiState.update {
-                    it.copy(
-                        registro = registro,
-                        estudiante = aporte?.estudiante ?: "",
-                        evidencias = registroRepository.obtenerEvidencias(registro.id),
-                        comentario = registro.comentarioDocente
-                    )
+                // Solo el docente responsable revisa, y solo registros ENVIADOS
+                if (bitacora == null ||
+                    bitacora.docenteId != Sesion.idUsuario() ||
+                    registro.estadoEnvio != EstadoEnvio.ENVIADO
+                ) {
+                    _uiState.update { it.copy(sinAcceso = true) }
+                } else {
+                    _uiState.update {
+                        it.copy(
+                            registro = registro,
+                            estudiante = aporte.estudiante,
+                            evidencias = registro.evidencias,     // vienen dentro del JSON del registro
+                            comentario = registro.comentarioDocente
+                        )
+                    }
                 }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { it.copy(mensaje = ERROR_CONEXION, mensajeEsError = true) }
+            } finally {
+                _uiState.update { it.copy(cargando = false) }
             }
         }
     }
@@ -67,10 +74,10 @@ class RevisionViewModel(
         }
         viewModelScope.launch {
             try {
+                // PUT /registros/{id}/retroalimentacion
                 registroRepository.guardarRetroalimentacion(
                     id = registro.id,
                     comentario = estado.comentario.trim(),
-                    fecha = fechaDeHoy(),
                     docenteId = Sesion.idUsuario(),
                     estadoRevision = registro.estadoRevision
                 )
@@ -101,7 +108,6 @@ class RevisionViewModel(
                 registroRepository.guardarRetroalimentacion(
                     id = registro.id,
                     comentario = estado.comentario.trim(),
-                    fecha = fechaDeHoy(),
                     docenteId = Sesion.idUsuario(),
                     estadoRevision = EstadoRevision.REVISADO
                 )

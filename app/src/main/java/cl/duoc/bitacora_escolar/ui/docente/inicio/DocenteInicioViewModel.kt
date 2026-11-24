@@ -1,70 +1,60 @@
 package cl.duoc.bitacora_escolar.ui.docente.inicio
 
-import android.app.Application
-import androidx.lifecycle.AndroidViewModel
+import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import cl.duoc.bitacora_escolar.data.AppDatabase
 import cl.duoc.bitacora_escolar.data.BitacoraRepository
 import cl.duoc.bitacora_escolar.data.CursoRepository
+import cl.duoc.bitacora_escolar.data.Dependencias
 import cl.duoc.bitacora_escolar.data.RecordatorioRepository
 import cl.duoc.bitacora_escolar.data.RegistroRepository
 import cl.duoc.bitacora_escolar.data.Sesion
-import cl.duoc.bitacora_escolar.model.AsignacionConNombres
 import cl.duoc.bitacora_escolar.model.BitacoraConNombres
 import cl.duoc.bitacora_escolar.model.EstadoBitacora
 import cl.duoc.bitacora_escolar.model.EstadoRecordatorio
 import cl.duoc.bitacora_escolar.model.Recordatorio
-import kotlinx.coroutines.flow.*
+import cl.duoc.bitacora_escolar.util.ERROR_CONEXION
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 class DocenteInicioViewModel(
-    application: Application
-) : AndroidViewModel(application) {
-
-    private val database = AppDatabase.getInstance(application)
-    private val cursoRepository = CursoRepository(database.cursoDao())
-    private val bitacoraRepository = BitacoraRepository(database.bitacoraDao())
-    private val registroRepository = RegistroRepository(database.registroDao(), database.evidenciaDao())
-    private val recordatorioRepository = RecordatorioRepository(database.recordatorioDao())
+    private val cursoRepository: CursoRepository = Dependencias.cursoRepository,
+    private val bitacoraRepository: BitacoraRepository = Dependencias.bitacoraRepository,
+    private val registroRepository: RegistroRepository = Dependencias.registroRepository,
+    private val recordatorioRepository: RecordatorioRepository = Dependencias.recordatorioRepository
+) : ViewModel() {
 
     private val docenteId = Sesion.idUsuario()
     val nombreDocente = Sesion.usuario?.nombre ?: ""
 
-    // Cursos y asignaturas del docente (se cargan una vez)
-    private val _asignaciones = MutableStateFlow<List<AsignacionConNombres>>(emptyList())
-    val asignaciones: StateFlow<List<AsignacionConNombres>> = _asignaciones.asStateFlow()
+    private val _uiState = MutableStateFlow(DocenteInicioUiState())
+    val uiState: StateFlow<DocenteInicioUiState> = _uiState.asStateFlow()
 
-    // Listas que se actualizan solas cuando cambia la base de datos
-    val bitacoras: StateFlow<List<BitacoraConNombres>> =
-        bitacoraRepository
-            .observarDeDocente(docenteId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
-
-    val pendientesRevision: StateFlow<Int> =
-        registroRepository
-            .observarPendientesDeDocente(docenteId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = 0
-            )
-
-    val recordatorios: StateFlow<List<Recordatorio>> =
-        recordatorioRepository
-            .observarPendientesDeDocente(docenteId)
-            .stateIn(
-                scope = viewModelScope,
-                started = SharingStarted.WhileSubscribed(5000),
-                initialValue = emptyList()
-            )
-
-    init {
+    // La pantalla lo llama cada vez que se muestra (ON_RESUME), así ve los cambios del servidor
+    fun cargar() {
         viewModelScope.launch {
-            _asignaciones.value = cursoRepository.asignacionesDeDocente(docenteId)
+            _uiState.update { it.copy(cargando = true) }
+            try {
+                // Room
+                val asignaciones = cursoRepository.asignacionesDeDocente(docenteId)
+                val recordatorios = recordatorioRepository.pendientesDeDocente(docenteId)
+                _uiState.update { it.copy(asignaciones = asignaciones, recordatorios = recordatorios) }
+
+                // Microservicio
+                val bitacoras = bitacoraRepository.obtenerDeDocente(docenteId)
+                val pendientes = registroRepository.contarPendientes(bitacoras.map { it.bitacora.id })
+                _uiState.update {
+                    it.copy(bitacoras = bitacoras, pendientesRevision = pendientes, cargando = false, error = "")
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                e.printStackTrace()
+                _uiState.update { it.copy(cargando = false, error = ERROR_CONEXION) }
+            }
         }
     }
 
@@ -82,6 +72,8 @@ class DocenteInicioViewModel(
     fun completarRecordatorio(recordatorio: Recordatorio) {
         viewModelScope.launch {
             recordatorioRepository.cambiarEstado(recordatorio.id, EstadoRecordatorio.COMPLETADO)
+            val pendientes = recordatorioRepository.pendientesDeDocente(docenteId)
+            _uiState.update { it.copy(recordatorios = pendientes) }
         }
     }
 
