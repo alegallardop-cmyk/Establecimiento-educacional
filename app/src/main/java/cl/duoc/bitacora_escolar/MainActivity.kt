@@ -4,12 +4,15 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import cl.duoc.bitacora_escolar.data.Dependencias
 import cl.duoc.bitacora_escolar.navigation.Navegacion
 import cl.duoc.bitacora_escolar.ui.theme.BitacoraEscolarTheme
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        // Prepara Room y los repositorios antes de mostrar las pantallas
+        Dependencias.iniciar(applicationContext)
         enableEdgeToEdge()
         setContent {
             BitacoraEscolarTheme {

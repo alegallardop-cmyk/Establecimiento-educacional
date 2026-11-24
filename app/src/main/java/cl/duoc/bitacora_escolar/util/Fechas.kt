@@ -52,3 +52,11 @@ fun ultimoDiaDelMes(mes: Int, anio: Int): String {
 fun mesSiguiente(mes: Int, anio: Int): Pair<Int, Int> {
     return if (mes == 12) Pair(1, anio + 1) else Pair(mes + 1, anio)
 }
+
+// La API de feriados usa "aaaa-mm-dd". La pasamos a "dd/mm/aaaa" como el resto de la app.
+// "2026-09-18" -> "18/09/2026"
+fun fechaIsoATexto(fecha: String): String {
+    val partes = fecha.split("-")
+    if (partes.size != 3) return fecha
+    return "${partes[2]}/${partes[1]}/${partes[0]}"
+}

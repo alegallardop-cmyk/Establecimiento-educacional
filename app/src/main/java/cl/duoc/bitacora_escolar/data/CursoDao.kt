@@ -42,4 +42,14 @@ interface CursoDao {
         "WHERE asignaciones.cursoId = :cursoId ORDER BY asignaturas.nombre"
     )
     suspend fun obtenerAsignacionesDeCurso(cursoId: Int): List<AsignacionConNombres>
+
+    // Una asignación con sus nombres (para mostrar el curso y la asignatura de una bitácora)
+    @Query(
+        "SELECT asignaciones.*, cursos.nombre AS curso, asignaturas.nombre AS asignatura " +
+        "FROM asignaciones " +
+        "INNER JOIN cursos ON cursos.id = asignaciones.cursoId " +
+        "INNER JOIN asignaturas ON asignaturas.id = asignaciones.asignaturaId " +
+        "WHERE asignaciones.id = :id"
+    )
+    suspend fun obtenerAsignacion(id: Int): AsignacionConNombres?
 }

@@ -15,6 +15,10 @@ interface UsuarioDao {
     @Query("SELECT * FROM usuarios WHERE correo = :correo")
     suspend fun buscarPorCorreo(correo: String): Usuario?
 
+    // Para mostrar el nombre del estudiante de un registro que viene del microservicio
+    @Query("SELECT * FROM usuarios WHERE id = :id")
+    suspend fun obtenerPorId(id: Int): Usuario?
+
     @Query("SELECT * FROM usuarios WHERE perfil = 'ESTUDIANTE' AND cursoId = :cursoId ORDER BY nombre")
     suspend fun obtenerEstudiantesDeCurso(cursoId: Int): List<Usuario>
 

@@ -6,22 +6,18 @@ import androidx.room3.Room
 import androidx.room3.RoomDatabase
 import cl.duoc.bitacora_escolar.model.Asignacion
 import cl.duoc.bitacora_escolar.model.Asignatura
-import cl.duoc.bitacora_escolar.model.Bitacora
 import cl.duoc.bitacora_escolar.model.Curso
-import cl.duoc.bitacora_escolar.model.Evidencia
 import cl.duoc.bitacora_escolar.model.Recordatorio
-import cl.duoc.bitacora_escolar.model.Registro
 import cl.duoc.bitacora_escolar.model.Usuario
 
+// Room guarda lo LOCAL: usuarios (login), cursos, asignaturas, asignaciones y recordatorios.
+// Las bitácoras, registros y evidencias ahora están en el microservicio (Spring Boot + MySQL).
 @Database(
     entities = [
         Usuario::class,
         Curso::class,
         Asignatura::class,
         Asignacion::class,
-        Bitacora::class,
-        Registro::class,
-        Evidencia::class,
         Recordatorio::class
     ],
     version = 1
@@ -29,9 +25,6 @@ import cl.duoc.bitacora_escolar.model.Usuario
 abstract class AppDatabase : RoomDatabase() {
     abstract fun usuarioDao(): UsuarioDao
     abstract fun cursoDao(): CursoDao
-    abstract fun bitacoraDao(): BitacoraDao
-    abstract fun registroDao(): RegistroDao
-    abstract fun evidenciaDao(): EvidenciaDao
     abstract fun recordatorioDao(): RecordatorioDao
 
     companion object {
@@ -45,7 +38,7 @@ abstract class AppDatabase : RoomDatabase() {
                 Room.databaseBuilder(
                     context.applicationContext,
                     AppDatabase::class.java,
-                    "bitacora.db"
+                    "bitacora_escolar.db"   // nombre nuevo: la base cambió (ya no tiene bitácoras ni registros)
                 )
                     .build()
                     .also {
