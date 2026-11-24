@@ -2,6 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.ksp)
+    alias(libs.plugins.kover)
 }
 
 android {
@@ -59,4 +60,34 @@ dependencies {
     implementation(libs.androidx.room.runtime)
     ksp(libs.androidx.room.compiler)
     implementation(libs.coil.compose)
+
+    // Retrofit + Gson (microservicio y API externa)
+    implementation(libs.retrofit)
+    implementation(libs.converter.gson)
+    implementation(libs.androidx.lifecycle.viewmodel.compose)
+    implementation(libs.androidx.lifecycle.runtime.compose)
+
+    // Pruebas unitarias de los ViewModel (Dispatchers.setMain y runTest)
+    testImplementation(libs.kotlinx.coroutines.test)
+}
+
+// Kover: reporte de cobertura de las pruebas unitarias
+// Ejecutar: ./gradlew :app:koverHtmlReportDebug
+// Se mide la LÓGICA de la app: validaciones, utilidades, sesión, repositorios y ViewModels
+// (las pantallas de Compose, Room y Retrofit se prueban ejecutando la app).
+kover {
+    reports {
+        filters {
+            includes {
+                classes(
+                    "cl.duoc.bitacora_escolar.util.ValidacionesKt",
+                    "cl.duoc.bitacora_escolar.util.FechasKt",
+                    "cl.duoc.bitacora_escolar.util.IndicadoresKt",
+                    "cl.duoc.bitacora_escolar.data.Sesion",
+                    "cl.duoc.bitacora_escolar.data.*Repository*",
+                    "cl.duoc.bitacora_escolar.ui.*ViewModel*"
+                )
+            }
+        }
+    }
 }
