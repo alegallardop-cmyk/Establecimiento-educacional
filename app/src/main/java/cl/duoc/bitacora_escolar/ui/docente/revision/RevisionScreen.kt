@@ -88,6 +88,13 @@ fun RevisionScreen(
                     }
                 }
             }
+        } else if (uiState.cargando) {
+            Cargando(Modifier.padding(innerPadding))
+        } else if (uiState.mensajeEsError) {
+            // No se pudo cargar el aporte desde el servidor
+            Column(modifier = Modifier.padding(innerPadding).padding(16.dp)) {
+                Mensaje(uiState.mensaje, esError = true)
+            }
         }
     }
 }

@@ -288,3 +288,48 @@ fun SinAcceso(modifier: Modifier = Modifier) {
         TextoError("No tienes acceso a esta información.")
     }
 }
+
+// Se muestra cuando no se pudo conectar con el microservicio.
+// El botón vuelve a pedir los datos al servidor.
+@Composable
+fun ErrorConexion(texto: String, onReintentar: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextoError(texto)
+        OutlinedButton(onClick = onReintentar) {
+            Text("Reintentar")
+        }
+    }
+}
+
+// Se muestra mientras se esperan los datos del microservicio
+@Composable
+fun Cargando(modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(24.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        CircularProgressIndicator()
+    }
+}
+
+// Pregunta "¿Eliminar...?" con los botones Sí / Cancelar (se usa al eliminar bitácoras y borradores)
+@Composable
+fun ConfirmarEliminar(pregunta: String, onConfirmar: () -> Unit, onCancelar: () -> Unit) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        TextoError(pregunta)
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            Button(
+                onClick = onConfirmar,
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
+                modifier = Modifier.weight(1f)
+            ) {
+                Text("Sí, eliminar")
+            }
+            OutlinedButton(onClick = onCancelar, modifier = Modifier.weight(1f)) {
+                Text("Cancelar")
+            }
+        }
+    }
+}

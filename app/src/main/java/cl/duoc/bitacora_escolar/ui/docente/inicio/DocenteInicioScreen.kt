@@ -13,6 +13,8 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.bitacora_escolar.model.EstadoBitacora
@@ -28,10 +30,17 @@ fun DocenteInicioScreen(
     onCerrarSesion: () -> Unit,
     viewModel: DocenteInicioViewModel = viewModel()
 ) {
-    val asignaciones by viewModel.asignaciones.collectAsStateWithLifecycle()
-    val bitacoras by viewModel.bitacoras.collectAsStateWithLifecycle()
-    val pendientes by viewModel.pendientesRevision.collectAsStateWithLifecycle()
-    val recordatorios by viewModel.recordatorios.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val asignaciones = uiState.asignaciones
+    val bitacoras = uiState.bitacoras
+    val pendientes = uiState.pendientesRevision
+    val recordatorios = uiState.recordatorios
+    val error = uiState.error
+
+    // Cada vez que la pantalla se muestra (también al volver desde otra) se piden los datos al servidor
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.cargar()
+    }
 
     val hayAvisos = pendientes > 0 || recordatorios.isNotEmpty()
 
@@ -39,6 +48,14 @@ fun DocenteInicioScreen(
         topBar = { BarraSuperior(titulo = "Hola, ${viewModel.nombreDocente}") }
     ) { innerPadding ->
         ContenidoPantalla(innerPadding) {
+            // ----- Cargando / error de conexión con el microservicio -----
+            if (uiState.cargando) {
+                item { Cargando() }
+            }
+            if (error.isNotBlank()) {
+                item { ErrorConexion(error) { viewModel.cargar() } }
+            }
+
             // ----- Indicadores (dashboard) -----
             item { Titulo("Resumen") }
             item {

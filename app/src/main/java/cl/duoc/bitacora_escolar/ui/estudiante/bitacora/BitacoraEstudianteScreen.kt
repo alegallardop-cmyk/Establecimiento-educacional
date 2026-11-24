@@ -6,10 +6,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.bitacora_escolar.model.EstadoEnvio
 import cl.duoc.bitacora_escolar.ui.componentes.*
+import cl.duoc.bitacora_escolar.ui.feriados.SeccionFeriados
 import cl.duoc.bitacora_escolar.util.nombreMes
 
 @Composable
@@ -18,9 +21,16 @@ fun BitacoraEstudianteScreen(
     onAbrirRegistro: () -> Unit,
     viewModel: BitacoraEstudianteViewModel = viewModel()
 ) {
-    val sinAcceso by viewModel.sinAcceso.collectAsStateWithLifecycle()
-    val bitacora by viewModel.bitacora.collectAsStateWithLifecycle()
-    val misRegistros by viewModel.misRegistros.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val sinAcceso = uiState.sinAcceso
+    val bitacora = uiState.bitacora
+    val misRegistros = uiState.misRegistros
+    val error = uiState.error
+
+    // Cada vez que la pantalla se muestra (también al volver desde otra) se piden los datos al servidor
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.cargar()
+    }
 
     Scaffold(
         topBar = { BarraSuperior(titulo = "Bitácora", onVolver = onVolver) }
@@ -31,6 +41,9 @@ fun BitacoraEstudianteScreen(
         } else if (conNombres != null) {
             val datos = conNombres.bitacora
             ContenidoPantalla(innerPadding) {
+                if (error.isNotBlank()) {
+                    item { ErrorConexion(error) { viewModel.cargar() } }
+                }
                 item {
                     Card(modifier = Modifier.fillMaxWidth()) {
                         Column(
@@ -47,6 +60,9 @@ fun BitacoraEstudianteScreen(
                         }
                     }
                 }
+
+                // Feriados del mes (API externa): días sin clases
+                item { SeccionFeriados(mes = datos.mes, anio = datos.anio) }
 
                 if (viewModel.puedeRegistrar(datos)) {
                     item {
@@ -78,6 +94,12 @@ fun BitacoraEstudianteScreen(
                         }
                     )
                 }
+            }
+        } else if (uiState.cargando) {
+            Cargando(Modifier.padding(innerPadding))
+        } else if (error.isNotBlank()) {
+            Column(modifier = Modifier.padding(innerPadding).padding(16.dp)) {
+                ErrorConexion(error) { viewModel.cargar() }
             }
         }
     }

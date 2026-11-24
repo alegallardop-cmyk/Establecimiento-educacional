@@ -10,6 +10,8 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.bitacora_escolar.ui.componentes.*
@@ -23,10 +25,17 @@ fun EstudianteInicioScreen(
     onCerrarSesion: () -> Unit,
     viewModel: EstudianteInicioViewModel = viewModel()
 ) {
-    val nombreCurso by viewModel.nombreCurso.collectAsStateWithLifecycle()
-    val asignaciones by viewModel.asignaciones.collectAsStateWithLifecycle()
-    val bitacoras by viewModel.bitacoras.collectAsStateWithLifecycle()
-    val misRegistros by viewModel.misRegistros.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val nombreCurso = uiState.nombreCurso
+    val asignaciones = uiState.asignaciones
+    val bitacoras = uiState.bitacoras
+    val misRegistros = uiState.misRegistros
+    val error = uiState.error
+
+    // Cada vez que la pantalla se muestra (también al volver desde otra) se piden los datos al servidor
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.cargar()
+    }
 
     val borradores = viewModel.cantidadBorradores(misRegistros)
     val comentarios = viewModel.cantidadComentarios(misRegistros)
@@ -36,6 +45,14 @@ fun EstudianteInicioScreen(
         topBar = { BarraSuperior(titulo = "Hola, ${viewModel.nombreEstudiante}") }
     ) { innerPadding ->
         ContenidoPantalla(innerPadding) {
+            // ----- Cargando / error de conexión con el microservicio -----
+            if (uiState.cargando) {
+                item { Cargando() }
+            }
+            if (error.isNotBlank()) {
+                item { ErrorConexion(error) { viewModel.cargar() } }
+            }
+
             // ----- Indicadores (dashboard) -----
             item { Titulo("Resumen") }
             item {

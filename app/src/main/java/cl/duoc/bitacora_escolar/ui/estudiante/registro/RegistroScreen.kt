@@ -53,7 +53,7 @@ fun RegistroScreen(
             } catch (e: Exception) {
                 e.printStackTrace()
             }
-            viewModel.agregarFoto(uri)
+            viewModel.agregarFoto(uri.toString())
         }
     }
 
@@ -64,7 +64,7 @@ fun RegistroScreen(
         contract = TakePicture()
     ) { fotoTomada ->
         val uri = uriPendiente
-        if (fotoTomada && uri != null) viewModel.agregarFoto(uri)
+        if (fotoTomada && uri != null) viewModel.agregarFoto(uri.toString())
         uriPendiente = null
     }
 
@@ -330,6 +330,23 @@ fun RegistroScreen(
                             Text("Enviar al docente")
                         }
                     }
+
+                    // ----- Eliminar el borrador (DELETE al microservicio) -----
+                    if (viewModel.puedeEliminar()) {
+                        item {
+                            if (!uiState.confirmarEliminar) {
+                                TextButton(onClick = { viewModel.pedirEliminar() }, modifier = Modifier.fillMaxWidth()) {
+                                    Text("Eliminar borrador", color = MaterialTheme.colorScheme.error)
+                                }
+                            } else {
+                                ConfirmarEliminar(
+                                    pregunta = "¿Eliminar este borrador? No se puede deshacer.",
+                                    onConfirmar = { viewModel.eliminar(onEliminado = onVolver) },
+                                    onCancelar = { viewModel.cancelarEliminar() }
+                                )
+                            }
+                        }
+                    }
                     item {
                         // Mensaje de confirmación o de error que aparece suavemente
                         AnimatedVisibility(
@@ -340,6 +357,13 @@ fun RegistroScreen(
                         }
                     }
                 }
+            }
+        } else if (uiState.cargando) {
+            Cargando(Modifier.padding(innerPadding))
+        } else if (uiState.mensajeEsError) {
+            // No se pudo cargar la bitácora desde el servidor
+            Column(modifier = Modifier.padding(innerPadding).padding(16.dp)) {
+                Mensaje(uiState.mensaje, esError = true)
             }
         }
     }

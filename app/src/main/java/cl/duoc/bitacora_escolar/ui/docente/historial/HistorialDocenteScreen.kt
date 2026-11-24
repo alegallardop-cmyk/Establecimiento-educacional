@@ -5,6 +5,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import cl.duoc.bitacora_escolar.model.EstadoBitacora
@@ -16,9 +18,16 @@ fun HistorialDocenteScreen(
     onAbrirBitacora: () -> Unit,
     viewModel: HistorialDocenteViewModel = viewModel()
 ) {
-    val bitacoras by viewModel.bitacoras.collectAsStateWithLifecycle()
-    val filtroEstado by viewModel.filtroEstado.collectAsStateWithLifecycle()
-    val filtroTexto by viewModel.filtroTexto.collectAsStateWithLifecycle()
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val bitacoras = uiState.bitacoras
+    val filtroEstado = uiState.filtroEstado
+    val filtroTexto = uiState.filtroTexto
+    val error = uiState.error
+
+    // Cada vez que la pantalla se muestra (también al volver desde otra) se piden los datos al servidor
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
+        viewModel.cargar()
+    }
 
     val filtradas = viewModel.filtradas(bitacoras, filtroEstado, filtroTexto)
 
@@ -26,6 +35,12 @@ fun HistorialDocenteScreen(
         topBar = { BarraSuperior(titulo = "Historial de bitácoras", onVolver = onVolver) }
     ) { innerPadding ->
         ContenidoPantalla(innerPadding) {
+            if (uiState.cargando) {
+                item { Cargando() }
+            }
+            if (error.isNotBlank()) {
+                item { ErrorConexion(error) { viewModel.cargar() } }
+            }
             item {
                 OutlinedTextField(
                     value = filtroTexto,

@@ -33,6 +33,8 @@ fun FormBitacoraScreen(
     ) { innerPadding ->
         if (uiState.sinAcceso) {
             SinAcceso(Modifier.padding(innerPadding))
+        } else if (uiState.cargando) {
+            Cargando(Modifier.padding(innerPadding))
         } else {
             ContenidoPantalla(innerPadding) {
                 // ----- Curso y asignatura -----

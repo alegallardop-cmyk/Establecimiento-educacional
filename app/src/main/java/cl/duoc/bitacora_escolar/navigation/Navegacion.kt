@@ -1,6 +1,7 @@
 package cl.duoc.bitacora_escolar.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
@@ -35,7 +36,10 @@ fun Navegacion() {
         // ==================== MÓDULO DOCENTE ====================
         // Control de acceso por perfil: si no es docente, ve "No tienes acceso"
         composable(Rutas.DOCENTE_INICIO) {
-            if (Sesion.esDocente()) {
+            // remember: el perfil se revisa una sola vez al entrar.
+            // Así, al cerrar sesión no aparece "No tienes acceso" mientras vuelve al login.
+            val esDocente = remember { Sesion.esDocente() }
+            if (esDocente) {
                 DocenteInicioScreen(
                     onNuevaBitacora = { navController.navigate(Rutas.FORM_BITACORA) },
                     onAbrirBitacora = { navController.navigate(Rutas.DETALLE_BITACORA) },
@@ -88,7 +92,8 @@ fun Navegacion() {
 
         // ==================== MÓDULO ESTUDIANTE ====================
         composable(Rutas.ESTUDIANTE_INICIO) {
-            if (Sesion.esEstudiante()) {
+            val esEstudiante = remember { Sesion.esEstudiante() }
+            if (esEstudiante) {
                 EstudianteInicioScreen(
                     onAbrirBitacora = { navController.navigate(Rutas.BITACORA_ESTUDIANTE) },
                     onMisAportes = { navController.navigate(Rutas.HISTORIAL_ESTUDIANTE) },
